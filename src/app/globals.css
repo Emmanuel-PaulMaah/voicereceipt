@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  main > div > section:first-child,
+  button {
+    display: none !important;
+  }
+
+  #receipt-preview {
+    box-shadow: none !important;
+    border: 1px solid #e4e4e7 !important;
+    margin: 0 auto;
+  }
+}
