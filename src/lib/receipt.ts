@@ -10,6 +10,7 @@ export type ReceiptItem = {
 export type Receipt = {
   businessName: string;
   businessPhone?: string;
+  businessAddress?: string;
   receiptNumber: string;
   customerName: string;
   items: ReceiptItem[];
@@ -46,6 +47,8 @@ export function getPaymentStatus(
 
 export function buildReceipt(input: {
   businessName: string;
+  businessPhone?: string;
+  businessAddress?: string;
   customerName: string;
   itemDescription: string;
   totalAmount: number;
@@ -57,6 +60,8 @@ export function buildReceipt(input: {
 
   return {
     businessName: input.businessName || "My Business",
+    businessPhone: input.businessPhone,
+    businessAddress: input.businessAddress,
     receiptNumber: input.receiptNumber || generateReceiptNumber(),
     customerName: input.customerName || "Customer",
     items: [

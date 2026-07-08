@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
-import { FileText, LayoutDashboard, ReceiptText } from "lucide-react";
+import { FileText, LayoutDashboard, ReceiptText, Settings } from "lucide-react";
 
 type AppShellProps = {
   children: ReactNode;
@@ -49,6 +49,14 @@ export function AppShell({ children }: AppShellProps) {
             >
               <LayoutDashboard size={17} />
               Customers
+            </Link>
+
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-800 hover:bg-zinc-50"
+            >
+              <Settings size={17} />
+              Settings
             </Link>
           </nav>
         </div>

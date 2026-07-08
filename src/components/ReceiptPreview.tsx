@@ -22,7 +22,15 @@ export function ReceiptPreview({ receipt }: ReceiptPreviewProps) {
             <h2 className="text-2xl font-black tracking-tight text-zinc-950">
               {receipt.businessName}
             </h2>
+
             <p className="mt-1 text-sm text-zinc-500">Official Receipt</p>
+
+            {(receipt.businessPhone || receipt.businessAddress) && (
+              <div className="mt-2 space-y-1 text-xs font-medium text-zinc-500">
+                {receipt.businessPhone && <p>{receipt.businessPhone}</p>}
+                {receipt.businessAddress && <p>{receipt.businessAddress}</p>}
+              </div>
+              )}
           </div>
 
           <span

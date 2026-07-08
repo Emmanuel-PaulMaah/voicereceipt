@@ -1,6 +1,13 @@
 import { Receipt } from "@/lib/receipt";
 
 const RECEIPTS_KEY = "voicereceipt.receipts";
+const BUSINESS_PROFILE_KEY = "voicereceipt.businessProfile";
+
+export type BusinessProfile = {
+  businessName: string;
+  businessPhone?: string;
+  businessAddress?: string;
+};
 
 export type CustomerDebt = {
   customerName: string;
@@ -51,6 +58,28 @@ export function getReceiptByNumber(receiptNumber: string): Receipt | null {
 
 export function clearReceipts() {
   window.localStorage.removeItem(RECEIPTS_KEY);
+}
+
+export function getBusinessProfile(): BusinessProfile | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(BUSINESS_PROFILE_KEY);
+
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as BusinessProfile;
+  } catch {
+    return null;
+  }
+}
+
+export function saveBusinessProfile(profile: BusinessProfile) {
+  window.localStorage.setItem(BUSINESS_PROFILE_KEY, JSON.stringify(profile));
+}
+
+export function clearBusinessProfile() {
+  window.localStorage.removeItem(BUSINESS_PROFILE_KEY);
 }
 
 export function buildCustomerDebts(receipts: Receipt[]): CustomerDebt[] {

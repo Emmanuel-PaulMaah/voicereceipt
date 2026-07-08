@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Mic, MicOff, RotateCcw } from "lucide-react";
 import { buildReceipt, parseMoney, Receipt } from "@/lib/receipt";
+import { BusinessProfile } from "@/lib/storage";
 
 type Draft = {
-  businessName: string;
   customerName: string;
   itemDescription: string;
   totalAmountRaw: string;
@@ -13,7 +13,6 @@ type Draft = {
 };
 
 type StepKey =
-  | "businessName"
   | "customerName"
   | "itemDescription"
   | "totalAmountRaw"
@@ -27,13 +26,6 @@ const steps: Array<{
   placeholder: string;
   helper?: string;
 }> = [
-  {
-    key: "businessName",
-    label: "Business",
-    question: "What is your business name?",
-    voicePrompt: "Say your business name.",
-    placeholder: "e.g. Emmanuel Stores",
-  },
   {
     key: "customerName",
     label: "Customer",
@@ -67,12 +59,12 @@ const steps: Array<{
 ];
 
 type VoiceWizardProps = {
+  businessProfile: BusinessProfile;
   onDraftChange: (receipt: Receipt | null) => void;
   onReceiptGenerated: (receipt: Receipt) => void;
 };
 
 const initialDraft: Draft = {
-  businessName: "",
   customerName: "",
   itemDescription: "",
   totalAmountRaw: "",
@@ -80,6 +72,7 @@ const initialDraft: Draft = {
 };
 
 export function VoiceWizard({
+  businessProfile,
   onDraftChange,
   onReceiptGenerated,
 }: VoiceWizardProps) {
@@ -105,7 +98,9 @@ export function VoiceWizard({
     if (!hasAnyValue) return null;
 
     return buildReceipt({
-      businessName: draft.businessName || "Business Name",
+      businessName: businessProfile.businessName,
+      businessPhone: businessProfile.businessPhone,
+      businessAddress: businessProfile.businessAddress,
       customerName: draft.customerName || "Customer Name",
       itemDescription: draft.itemDescription || "Items purchased",
       totalAmount: parseMoney(draft.totalAmountRaw),
@@ -113,7 +108,7 @@ export function VoiceWizard({
       receiptNumber: "DRAFT",
       issuedAt: new Date().toISOString(),
     });
-  }, [draft]);
+  }, [businessProfile, draft]);
 
   useEffect(() => {
     onDraftChange(draftReceipt);
@@ -128,7 +123,7 @@ export function VoiceWizard({
 
   function canGenerateReceipt() {
     return (
-      draft.businessName.trim() &&
+      businessProfile.businessName.trim() &&
       draft.customerName.trim() &&
       draft.itemDescription.trim() &&
       parseMoney(draft.totalAmountRaw) > 0
@@ -137,7 +132,9 @@ export function VoiceWizard({
 
   function makeFinalReceipt() {
     return buildReceipt({
-      businessName: draft.businessName,
+      businessName: businessProfile.businessName,
+      businessPhone: businessProfile.businessPhone,
+      businessAddress: businessProfile.businessAddress,
       customerName: draft.customerName,
       itemDescription: draft.itemDescription,
       totalAmount: parseMoney(draft.totalAmountRaw),
@@ -244,6 +241,9 @@ export function VoiceWizard({
           <h1 className="mt-1 text-2xl font-black tracking-tight text-zinc-950">
             Speak or type each answer.
           </h1>
+          <p className="mt-2 text-sm font-semibold text-zinc-500">
+            Business: {businessProfile.businessName}
+          </p>
         </div>
 
         <button
