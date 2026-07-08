@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Mic, MicOff, RotateCcw } from "lucide-react";
 import { buildReceipt, parseMoney, Receipt } from "@/lib/receipt";
 
@@ -67,7 +67,8 @@ const steps: Array<{
 ];
 
 type VoiceWizardProps = {
-  onReceiptChange: (receipt: Receipt | null) => void;
+  onDraftChange: (receipt: Receipt | null) => void;
+  onReceiptGenerated: (receipt: Receipt) => void;
 };
 
 const initialDraft: Draft = {
@@ -78,7 +79,10 @@ const initialDraft: Draft = {
   amountPaidRaw: "",
 };
 
-export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
+export function VoiceWizard({
+  onDraftChange,
+  onReceiptGenerated,
+}: VoiceWizardProps) {
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [stepIndex, setStepIndex] = useState(0);
   const [isDone, setIsDone] = useState(false);
@@ -93,6 +97,28 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
     return Math.round(((stepIndex + (isDone ? 1 : 0)) / steps.length) * 100);
   }, [stepIndex, isDone]);
 
+  const draftReceipt = useMemo(() => {
+    const hasAnyValue = Object.values(draft).some(
+      (value) => value.trim().length > 0
+    );
+
+    if (!hasAnyValue) return null;
+
+    return buildReceipt({
+      businessName: draft.businessName || "Business Name",
+      customerName: draft.customerName || "Customer Name",
+      itemDescription: draft.itemDescription || "Items purchased",
+      totalAmount: parseMoney(draft.totalAmountRaw),
+      amountPaid: parseMoney(draft.amountPaidRaw),
+      receiptNumber: "DRAFT",
+      issuedAt: new Date().toISOString(),
+    });
+  }, [draft]);
+
+  useEffect(() => {
+    onDraftChange(draftReceipt);
+  }, [draftReceipt, onDraftChange]);
+
   function updateDraft(value: string) {
     setDraft((current) => ({
       ...current,
@@ -100,16 +126,22 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
     }));
   }
 
-  function makeReceipt(nextDraft = draft) {
-    const totalAmount = parseMoney(nextDraft.totalAmountRaw);
-    const amountPaid = parseMoney(nextDraft.amountPaidRaw);
+  function canGenerateReceipt() {
+    return (
+      draft.businessName.trim() &&
+      draft.customerName.trim() &&
+      draft.itemDescription.trim() &&
+      parseMoney(draft.totalAmountRaw) > 0
+    );
+  }
 
+  function makeFinalReceipt() {
     return buildReceipt({
-      businessName: nextDraft.businessName,
-      customerName: nextDraft.customerName,
-      itemDescription: nextDraft.itemDescription,
-      totalAmount,
-      amountPaid,
+      businessName: draft.businessName,
+      customerName: draft.customerName,
+      itemDescription: draft.itemDescription,
+      totalAmount: parseMoney(draft.totalAmountRaw),
+      amountPaid: parseMoney(draft.amountPaidRaw),
     });
   }
 
@@ -122,10 +154,13 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
       return;
     }
 
-    const receipt = makeReceipt();
+    if (!canGenerateReceipt()) return;
+
+    const finalReceipt = makeFinalReceipt();
+
     setIsDone(true);
     setSpeechError(null);
-    onReceiptChange(receipt);
+    onReceiptGenerated(finalReceipt);
   }
 
   function reset() {
@@ -135,7 +170,7 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
     setIsDone(false);
     setIsListening(false);
     setSpeechError(null);
-    onReceiptChange(null);
+    onDraftChange(null);
   }
 
   function editStep(index: number) {
@@ -144,7 +179,6 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
     setIsDone(false);
     setIsListening(false);
     setSpeechError(null);
-    onReceiptChange(null);
   }
 
   function startListening() {
@@ -201,11 +235,11 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
   }
 
   return (
-    <div className="w-full max-w-xl rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <div className="w-full rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
-            Voice Receipt Builder
+            Create Receipt
           </p>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-zinc-950">
             Speak or type each answer.
@@ -314,22 +348,23 @@ export function VoiceWizard({ onReceiptChange }: VoiceWizardProps) {
             disabled={!currentValue.trim()}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
-            {stepIndex === steps.length - 1 ? "Generate receipt" : "Next"}
+            {stepIndex === steps.length - 1
+              ? "Generate & save receipt"
+              : "Next"}
             <ArrowRight size={18} />
           </button>
         </div>
       ) : (
         <div className="mt-8 rounded-3xl bg-green-50 p-5">
           <p className="text-sm font-bold uppercase tracking-wide text-green-700">
-            Receipt generated
+            Receipt generated and saved
           </p>
           <p className="mt-2 text-sm leading-6 text-green-800">
-            Review the receipt, then print or download it as PDF. Use the step
-            chips above to edit any answer.
+            This receipt has been saved automatically. You can view it again
+            from the Receipts page.
           </p>
         </div>
       )}
     </div>
   );
 }
-

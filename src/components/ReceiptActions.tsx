@@ -2,7 +2,7 @@
 
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
-import { Download, FileImage, Printer } from "lucide-react";
+import { Download, FileImage } from "lucide-react";
 
 function getReceiptElement() {
   const receiptElement = document.getElementById("receipt-preview");
@@ -69,15 +69,7 @@ export function ReceiptActions() {
   }
 
   return (
-    <div className="grid w-full max-w-md grid-cols-3 gap-3">
-      <button
-        onClick={() => window.print()}
-        className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50"
-      >
-        <Printer size={18} />
-        Print
-      </button>
-
+    <div className="grid w-full max-w-md grid-cols-2 gap-3">
       <button
         onClick={downloadImage}
         className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50"
@@ -96,4 +88,3 @@ export function ReceiptActions() {
     </div>
   );
 }
-``

@@ -50,23 +50,25 @@ export function buildReceipt(input: {
   itemDescription: string;
   totalAmount: number;
   amountPaid: number;
+  receiptNumber?: string;
+  issuedAt?: string;
 }): Receipt {
   const balance = Math.max(input.totalAmount - input.amountPaid, 0);
 
   return {
     businessName: input.businessName || "My Business",
-    receiptNumber: generateReceiptNumber(),
-    customerName: input.customerName,
+    receiptNumber: input.receiptNumber || generateReceiptNumber(),
+    customerName: input.customerName || "Customer",
     items: [
       {
-        description: input.itemDescription,
+        description: input.itemDescription || "Items purchased",
       },
     ],
     totalAmount: input.totalAmount,
     amountPaid: input.amountPaid,
     balance,
     paymentStatus: getPaymentStatus(input.totalAmount, input.amountPaid),
-    issuedAt: new Date().toISOString(),
+    issuedAt: input.issuedAt || new Date().toISOString(),
   };
 }
 
