@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { ReceiptActions } from "@/components/ReceiptActions";
 import { Receipt, formatNaira } from "@/lib/receipt";
-import { clearReceipts, getStoredReceipts } from "@/lib/storage";
+import { getStoredReceipts } from "@/lib/storage";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 
 export function ReceiptsList() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -15,16 +16,6 @@ export function ReceiptsList() {
     setReceipts(stored);
     setSelectedReceipt(stored[0] || null);
   }, []);
-
-  function handleClearReceipts() {
-    const confirmed = window.confirm("Clear all saved receipts?");
-
-    if (!confirmed) return;
-
-    clearReceipts();
-    setReceipts([]);
-    setSelectedReceipt(null);
-  }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_420px] xl:items-start">
@@ -38,15 +29,6 @@ export function ReceiptsList() {
               Receipt history
             </h1>
           </div>
-
-          {receipts.length > 0 && (
-            <button
-              onClick={handleClearReceipts}
-              className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 hover:bg-red-100"
-            >
-              Clear all
-            </button>
-          )}
         </div>
 
         <div className="mt-5 space-y-3">
@@ -105,6 +87,7 @@ export function ReceiptsList() {
         {selectedReceipt ? (
           <>
             <ReceiptPreview receipt={selectedReceipt} />
+            <WhatsAppButton type="receipt" receipt={selectedReceipt} />
             <ReceiptActions />
           </>
         ) : (

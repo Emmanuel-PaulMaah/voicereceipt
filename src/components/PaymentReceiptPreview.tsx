@@ -1,19 +1,13 @@
-import { Receipt, formatNaira } from "@/lib/receipt";
+import { PaymentReceipt, formatNaira } from "@/lib/receipt";
 
-type ReceiptPreviewProps = {
-  receipt: Receipt;
+type PaymentReceiptPreviewProps = {
+  receipt: PaymentReceipt;
 };
 
-export function ReceiptPreview({ receipt }: ReceiptPreviewProps) {
-  const statusStyles = {
-    paid: "bg-green-100 text-green-700 border-green-200",
-    "part-paid": "bg-amber-100 text-amber-700 border-amber-200",
-    unpaid: "bg-red-100 text-red-700 border-red-200",
-  };
-
+export function PaymentReceiptPreview({ receipt }: PaymentReceiptPreviewProps) {
   return (
     <div
-      id="receipt-preview"
+      id="payment-receipt-preview"
       className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm"
     >
       <div className="border-b border-dashed border-zinc-300 pb-5">
@@ -23,37 +17,35 @@ export function ReceiptPreview({ receipt }: ReceiptPreviewProps) {
               {receipt.businessName}
             </h2>
 
-            <p className="mt-1 text-sm text-zinc-500">Official Receipt</p>
+            <p className="mt-1 text-sm text-zinc-500">
+              Part Payment Receipt
+            </p>
 
             {(receipt.businessPhone || receipt.businessAddress) && (
               <div className="mt-2 space-y-1 text-xs font-medium text-zinc-500">
                 {receipt.businessPhone && <p>{receipt.businessPhone}</p>}
                 {receipt.businessAddress && <p>{receipt.businessAddress}</p>}
               </div>
-              )}
+            )}
           </div>
 
-          <span
-            className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${
-              statusStyles[receipt.paymentStatus]
-            }`}
-          >
-            {receipt.paymentStatus}
+          <span className="rounded-full border border-green-200 bg-green-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-green-700">
+            received
           </span>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-zinc-500">Receipt No.</p>
+            <p className="text-zinc-500">Payment No.</p>
             <p className="font-semibold text-zinc-900">
-              {receipt.receiptNumber}
+              {receipt.paymentNumber}
             </p>
           </div>
 
           <div className="text-right">
             <p className="text-zinc-500">Date</p>
             <p className="font-semibold text-zinc-900">
-              {new Date(receipt.issuedAt).toLocaleDateString("en-NG")}
+              {new Date(receipt.paidAt).toLocaleDateString("en-NG")}
             </p>
           </div>
         </div>
@@ -71,50 +63,41 @@ export function ReceiptPreview({ receipt }: ReceiptPreviewProps) {
         )}
       </div>
 
-      <div className="border-b border-dashed border-zinc-300 py-5">
-        <div className="mb-3 flex items-center justify-between text-sm font-semibold text-zinc-500">
-          <span>Item</span>
-          <span>Amount</span>
-        </div>
-
-        {receipt.items.map((item, index) => (
-          <div key={index} className="flex items-start justify-between gap-4">
-            <p className="text-sm font-medium text-zinc-900">
-              {item.description}
-            </p>
-            <p className="text-sm font-semibold text-zinc-900">
-              {item.total ? formatNaira(item.total) : "—"}
-            </p>
-          </div>
-        ))}
-      </div>
-
       <div className="space-y-3 py-5">
         <div className="flex justify-between text-sm">
-          <span className="text-zinc-500">Total</span>
-          <span className="font-bold text-zinc-950">
-            {formatNaira(receipt.totalAmount)}
-          </span>
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span className="text-zinc-500">Paid</span>
+          <span className="text-zinc-500">Part payment received</span>
           <span className="font-bold text-zinc-950">
             {formatNaira(receipt.amountPaid)}
           </span>
         </div>
 
-        <div className="flex items-center justify-between rounded-2xl bg-zinc-950 px-4 py-4 text-white">
-          <span className="text-sm text-zinc-300">Balance</span>
-          <span className="text-xl font-black">
-            {formatNaira(receipt.balance)}
+        <div className="flex justify-between text-sm">
+          <span className="text-zinc-500">Previous balance</span>
+          <span className="font-bold text-zinc-950">
+            {formatNaira(receipt.previousBalance)}
           </span>
         </div>
+
+        <div className="flex items-center justify-between rounded-2xl bg-zinc-950 px-4 py-4 text-white">
+          <span className="text-sm text-zinc-300">Outstanding balance</span>
+          <span className="text-xl font-black">
+            {formatNaira(receipt.outstandingBalance)}
+          </span>
+        </div>
+
+        {receipt.note && (
+          <div className="rounded-2xl bg-zinc-50 p-4">
+            <p className="text-sm text-zinc-500">Note</p>
+            <p className="mt-1 text-sm font-bold text-zinc-950">
+              {receipt.note}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-dashed border-zinc-300 pt-5 text-center">
         <p className="text-sm font-medium text-zinc-700">
-          Thank you for your business.
+          Part payment for outstanding customer balance.
         </p>
         <p className="mt-1 text-xs text-zinc-400">
           Generated by VoiceReceipt

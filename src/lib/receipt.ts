@@ -13,6 +13,7 @@ export type Receipt = {
   businessAddress?: string;
   receiptNumber: string;
   customerName: string;
+  customerPhone?: string;
   items: ReceiptItem[];
   totalAmount: number;
   amountPaid: number;
@@ -21,17 +22,39 @@ export type Receipt = {
   issuedAt: string;
 };
 
+export type PaymentReceipt = {
+  businessName: string;
+  businessPhone?: string;
+  businessAddress?: string;
+  paymentNumber: string;
+  customerName: string;
+  customerPhone?: string;
+  amountPaid: number;
+  previousBalance: number;
+  outstandingBalance: number;
+  note?: string;
+  paidAt: string;
+};
+
 export function formatNaira(amount: number): string {
+
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(safeAmount);
 }
 
 export function generateReceiptNumber(): string {
   const random = Math.floor(1000 + Math.random() * 9000);
   return `VR-${Date.now().toString().slice(-6)}-${random}`;
+}
+
+export function generatePaymentNumber(): string {
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `PAY-${Date.now().toString().slice(-6)}-${random}`;
 }
 
 export function getPaymentStatus(
@@ -50,6 +73,7 @@ export function buildReceipt(input: {
   businessPhone?: string;
   businessAddress?: string;
   customerName: string;
+  customerPhone?: string;
   itemDescription: string;
   totalAmount: number;
   amountPaid: number;
@@ -64,6 +88,7 @@ export function buildReceipt(input: {
     businessAddress: input.businessAddress,
     receiptNumber: input.receiptNumber || generateReceiptNumber(),
     customerName: input.customerName || "Customer",
+    customerPhone: input.customerPhone,
     items: [
       {
         description: input.itemDescription || "Items purchased",
@@ -78,6 +103,8 @@ export function buildReceipt(input: {
 }
 
 export function parseMoney(input: string): number {
+  if (!input) return 0;
+
   const cleaned = input
     .toLowerCase()
     .replace(/₦|ngn|naira|,/g, "")
@@ -89,8 +116,10 @@ export function parseMoney(input: string): number {
   const thousandDigitMatch = cleaned.match(/(\d+)\s*thousand/);
   if (thousandDigitMatch) return Number(thousandDigitMatch[1]) * 1000;
 
-  const numberMatch = cleaned.match(/\d+/);
-  if (numberMatch) return Number(numberMatch[0]);
+  const plainNumberMatch = cleaned.match(/\d+/);
+  if (plainNumberMatch && !cleaned.includes("thousand")) {
+    return Number(plainNumberMatch[0]);
+  }
 
   const words: Record<string, number> = {
     one: 1,

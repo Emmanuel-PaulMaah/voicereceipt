@@ -7,6 +7,7 @@ import { BusinessProfile } from "@/lib/storage";
 
 type Draft = {
   customerName: string;
+  customerPhone: string;
   itemDescription: string;
   totalAmountRaw: string;
   amountPaidRaw: string;
@@ -14,6 +15,7 @@ type Draft = {
 
 type StepKey =
   | "customerName"
+  | "customerPhone"
   | "itemDescription"
   | "totalAmountRaw"
   | "amountPaidRaw";
@@ -32,6 +34,14 @@ const steps: Array<{
     question: "Who bought something?",
     voicePrompt: "Say the customer's name.",
     placeholder: "e.g. Ada",
+  },
+  {
+    key: "customerPhone",
+    label: "Phone",
+    question: "What is the customer’s WhatsApp number?",
+    voicePrompt: "Say or type the customer's WhatsApp number.",
+    placeholder: "e.g. 08012345678",
+    helper: "This lets reminders go directly to the customer on WhatsApp.",
   },
   {
     key: "itemDescription",
@@ -66,6 +76,7 @@ type VoiceWizardProps = {
 
 const initialDraft: Draft = {
   customerName: "",
+  customerPhone: "",
   itemDescription: "",
   totalAmountRaw: "",
   amountPaidRaw: "",
@@ -81,10 +92,19 @@ export function VoiceWizard({
   const [isDone, setIsDone] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const shouldKeepListeningRef = useRef(false);
+  const baseTranscriptRef = useRef("");
+  const latestValueRef = useRef("");
+  const restartTimeoutRef = useRef<number | null>(null);
 
   const currentStep = steps[stepIndex];
   const currentValue = draft[currentStep.key];
+
+  useEffect(() => {
+    latestValueRef.current = currentValue;
+  }, [currentValue]);
 
   const progress = useMemo(() => {
     return Math.round(((stepIndex + (isDone ? 1 : 0)) / steps.length) * 100);
@@ -102,6 +122,7 @@ export function VoiceWizard({
       businessPhone: businessProfile.businessPhone,
       businessAddress: businessProfile.businessAddress,
       customerName: draft.customerName || "Customer Name",
+      customerPhone: draft.customerPhone,
       itemDescription: draft.itemDescription || "Items purchased",
       totalAmount: parseMoney(draft.totalAmountRaw),
       amountPaid: parseMoney(draft.amountPaidRaw),
@@ -114,11 +135,33 @@ export function VoiceWizard({
     onDraftChange(draftReceipt);
   }, [draftReceipt, onDraftChange]);
 
+  useEffect(() => {
+    return () => {
+      shouldKeepListeningRef.current = false;
+
+      if (restartTimeoutRef.current) {
+        window.clearTimeout(restartTimeoutRef.current);
+      }
+
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
   function updateDraft(value: string) {
     setDraft((current) => ({
       ...current,
       [currentStep.key]: value,
     }));
+  }
+
+  function appendTranscript(base: string, transcript: string) {
+    const cleanBase = base.trim();
+    const cleanTranscript = transcript.trim();
+
+    if (!cleanBase) return cleanTranscript;
+    if (!cleanTranscript) return cleanBase;
+
+    return `${cleanBase} ${cleanTranscript}`;
   }
 
   function canGenerateReceipt() {
@@ -136,6 +179,7 @@ export function VoiceWizard({
       businessPhone: businessProfile.businessPhone,
       businessAddress: businessProfile.businessAddress,
       customerName: draft.customerName,
+      customerPhone: draft.customerPhone,
       itemDescription: draft.itemDescription,
       totalAmount: parseMoney(draft.totalAmountRaw),
       amountPaid: parseMoney(draft.amountPaidRaw),
@@ -144,6 +188,8 @@ export function VoiceWizard({
 
   function goNext() {
     if (!currentValue.trim()) return;
+
+    stopListening();
 
     if (stepIndex < steps.length - 1) {
       setStepIndex((current) => current + 1);
@@ -161,20 +207,18 @@ export function VoiceWizard({
   }
 
   function reset() {
-    recognitionRef.current?.stop();
+    stopListening();
     setDraft(initialDraft);
     setStepIndex(0);
     setIsDone(false);
-    setIsListening(false);
     setSpeechError(null);
     onDraftChange(null);
   }
 
   function editStep(index: number) {
-    recognitionRef.current?.stop();
+    stopListening();
     setStepIndex(index);
     setIsDone(false);
-    setIsListening(false);
     setSpeechError(null);
   }
 
@@ -191,26 +235,52 @@ export function VoiceWizard({
       return;
     }
 
+    if (restartTimeoutRef.current) {
+      window.clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+
     recognitionRef.current?.stop();
+
+    shouldKeepListeningRef.current = true;
+    baseTranscriptRef.current = latestValueRef.current;
 
     const recognition = new SpeechRecognitionAPI();
     recognitionRef.current = recognition;
 
     recognition.lang = "en-NG";
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       setIsListening(true);
     };
 
     recognition.onerror = (event) => {
-      setIsListening(false);
+      if (event.error === "no-speech") {
+        return;
+      }
+
       setSpeechError(`Mic error: ${event.error}. You can type instead.`);
     };
 
     recognition.onend = () => {
-      setIsListening(false);
+      if (!shouldKeepListeningRef.current) {
+        setIsListening(false);
+        return;
+      }
+
+      restartTimeoutRef.current = window.setTimeout(() => {
+        if (!shouldKeepListeningRef.current) return;
+
+        try {
+          baseTranscriptRef.current = latestValueRef.current;
+          recognition.start();
+        } catch {
+          setIsListening(false);
+        }
+      }, 250);
     };
 
     recognition.onresult = (event) => {
@@ -220,13 +290,27 @@ export function VoiceWizard({
         transcript += event.results[index][0].transcript;
       }
 
-      updateDraft(transcript.trim());
+      const nextValue = appendTranscript(baseTranscriptRef.current, transcript);
+
+      updateDraft(nextValue);
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      setSpeechError("Mic could not start. Try again or type instead.");
+      setIsListening(false);
+    }
   }
 
   function stopListening() {
+    shouldKeepListeningRef.current = false;
+
+    if (restartTimeoutRef.current) {
+      window.clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+
     recognitionRef.current?.stop();
     setIsListening(false);
   }
@@ -327,7 +411,7 @@ export function VoiceWizard({
 
           {isListening && (
             <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              Listening… speak now.
+              Listening… keep speaking. Tap the mic again when done.
             </div>
           )}
 

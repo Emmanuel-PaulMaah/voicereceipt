@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   BusinessProfile,
-  clearBusinessProfile,
   getBusinessProfile,
   saveBusinessProfile,
 } from "@/lib/storage";
@@ -52,16 +51,6 @@ export function BusinessSettingsForm() {
     });
 
     setSavedMessage("Business profile saved.");
-  }
-
-  function handleClear() {
-    const confirmed = window.confirm("Clear saved business profile?");
-
-    if (!confirmed) return;
-
-    clearBusinessProfile();
-    setProfile(emptyProfile);
-    setSavedMessage("Business profile cleared.");
   }
 
   return (
@@ -129,19 +118,11 @@ export function BusinessSettingsForm() {
         </div>
       )}
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-6">
         <button
           onClick={handleSave}
-          className="flex-1 rounded-2xl bg-zinc-950 px-5 py-4 text-sm font-black text-white hover:bg-zinc-800"
-        >
+          className="w-full rounded-2xl bg-zinc-950 px-5 py-4 text-sm font-black text-white hover:bg-zinc-800">
           Save business profile
-        </button>
-
-        <button
-          onClick={handleClear}
-          className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 hover:bg-red-100"
-        >
-          Clear
         </button>
       </div>
     </div>

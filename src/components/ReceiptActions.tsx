@@ -4,68 +4,78 @@ import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { Download, FileImage } from "lucide-react";
 
-function getReceiptElement() {
-  const receiptElement = document.getElementById("receipt-preview");
+type ReceiptActionsProps = {
+  elementId?: string;
+  filePrefix?: string;
+};
 
-  if (!receiptElement) {
-    alert("Receipt not found.");
+function getElement(elementId: string) {
+  const element = document.getElementById(elementId);
+
+  if (!element) {
+    alert("Export target not found.");
     return null;
   }
 
-  return receiptElement;
+  return element;
 }
 
-async function generateReceiptImage(): Promise<string | null> {
-  const receiptElement = getReceiptElement();
+async function generateImage(
+  elementId: string
+): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  const element = getElement(elementId);
 
-  if (!receiptElement) return null;
+  if (!element) return null;
 
   try {
-    const dataUrl = await toPng(receiptElement, {
+    const rect = element.getBoundingClientRect();
+
+    const dataUrl = await toPng(element, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: "#ffffff",
     });
 
-    return dataUrl;
+    return {
+      dataUrl,
+      width: rect.width * 2,
+      height: rect.height * 2,
+    };
   } catch (error) {
     console.error(error);
-    alert("Could not export receipt. Try again.");
+    alert("Could not export. Try again.");
     return null;
   }
 }
 
-export function ReceiptActions() {
+export function ReceiptActions({
+  elementId = "receipt-preview",
+  filePrefix = "receipt",
+}: ReceiptActionsProps) {
   async function downloadImage() {
-    const dataUrl = await generateReceiptImage();
+    const result = await generateImage(elementId);
 
-    if (!dataUrl) return;
+    if (!result) return;
 
     const link = document.createElement("a");
-    link.download = `receipt-${Date.now()}.png`;
-    link.href = dataUrl;
+    link.download = `${filePrefix}-${Date.now()}.png`;
+    link.href = result.dataUrl;
     link.click();
   }
 
   async function downloadPDF() {
-    const receiptElement = getReceiptElement();
+    const result = await generateImage(elementId);
 
-    if (!receiptElement) return;
-
-    const dataUrl = await generateReceiptImage();
-
-    if (!dataUrl) return;
-
-    const rect = receiptElement.getBoundingClientRect();
+    if (!result) return;
 
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "px",
-      format: [rect.width * 2, rect.height * 2],
+      format: [result.width, result.height],
     });
 
-    pdf.addImage(dataUrl, "PNG", 0, 0, rect.width * 2, rect.height * 2);
-    pdf.save(`receipt-${Date.now()}.pdf`);
+    pdf.addImage(result.dataUrl, "PNG", 0, 0, result.width, result.height);
+    pdf.save(`${filePrefix}-${Date.now()}.pdf`);
   }
 
   return (

@@ -1,12 +1,16 @@
+import Link from "next/link";
 import { AlertCircle, CheckCircle2, Users } from "lucide-react";
 import { CustomerDebt } from "@/lib/storage";
 import { formatNaira } from "@/lib/receipt";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { RecordPaymentForm } from "@/components/RecordPaymentForm";
 
 type DebtDashboardProps = {
   debts: CustomerDebt[];
+  onPaymentSaved?: () => void;
 };
 
-export function DebtDashboard({ debts }: DebtDashboardProps) {
+export function DebtDashboard({ debts, onPaymentSaved }: DebtDashboardProps) {
   const totalOutstanding = debts.reduce(
     (sum, customer) => sum + customer.outstandingBalance,
     0
@@ -77,17 +81,19 @@ export function DebtDashboard({ debts }: DebtDashboardProps) {
                         <CheckCircle2 size={18} className="text-green-600" />
                       )}
 
-                      <p className="font-black text-zinc-950">
-                        {customer.customerName}
-                      </p>
+                      <Link
+                        href={`/customers/${encodeURIComponent(customer.customerName)}`}
+                        className="font-black text-zinc-950 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-950"
+                        >
+                          {customer.customerName}
+                        </Link>
                     </div>
 
                     <p className="mt-1 text-sm text-zinc-500">
                       {customer.receiptCount} receipt
-                      {customer.receiptCount === 1 ? "" : "s"} • Last:{" "}
-                      {new Date(customer.lastReceiptAt).toLocaleDateString(
-                        "en-NG"
-                      )}
+                      {customer.receiptCount === 1 ? "" : "s"} •{" "}
+                      {customer.paymentCount} payment
+                      {customer.paymentCount === 1 ? "" : "s"}
                     </p>
                   </div>
 
@@ -105,7 +111,7 @@ export function DebtDashboard({ debts }: DebtDashboardProps) {
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                   <div className="rounded-xl bg-zinc-50 p-3">
                     <p className="text-zinc-500">Spent</p>
                     <p className="font-bold text-zinc-950">
@@ -114,12 +120,30 @@ export function DebtDashboard({ debts }: DebtDashboardProps) {
                   </div>
 
                   <div className="rounded-xl bg-zinc-50 p-3">
-                    <p className="text-zinc-500">Paid</p>
+                    <p className="text-zinc-500">Paid on receipts</p>
                     <p className="font-bold text-zinc-950">
                       {formatNaira(customer.totalPaid)}
                     </p>
                   </div>
+
+                  <div className="rounded-xl bg-zinc-50 p-3">
+                    <p className="text-zinc-500">Extra payments</p>
+                    <p className="font-bold text-zinc-950">
+                      {formatNaira(customer.extraPayments)}
+                    </p>
+                  </div>
                 </div>
+
+                {isOwing && (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <RecordPaymentForm
+                      customer={customer}
+                      onPaymentSaved={onPaymentSaved || (() => {})}
+                    />
+
+                    <WhatsAppButton type="debt" customer={customer} />
+                  </div>
+                )}
               </div>
             );
           })
